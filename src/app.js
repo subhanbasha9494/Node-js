@@ -2,7 +2,8 @@ const express = require("express");
 const connectDB = require("./config/database");
 const app = express();
 const User = require("./models/user");
-app.use(express.json()); // its a middleware
+// Parse JSON bodies
+app.use(express.json());
 app.post("/signup", async (req, res) => {
   const userObj = req.body;
   // const userObj = {
@@ -21,7 +22,7 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-//Feed API - get all the users from the database
+
 app.get("/user", async (req, res) => {
   const userEmail = req.body.emailId;
   try {
@@ -36,6 +37,53 @@ app.get("/user", async (req, res) => {
   };
 });
 
+//Feed API - get all the users from the database
+app.get("/feed", async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.send(users);
+  } catch (err) {
+    res.status(400).send("Something Error", err.message)
+  }
+});
+
+
+app.delete("/userdel/:userId", async (req, res) => {
+  let userId = req.params.userId;
+  console.log("Received userId:", userId);
+  if (!userId) {
+    return res.status(400).send("userId is required");
+  }
+  try {
+    const user = await User.findOneAndDelete({ _id: userId });
+    if (!user) {
+      return res.status(200).send("User not found");
+    } else {
+      res.send("user deleted successfully");
+    }
+  } catch (err) {
+    res.status(400).send("Something Error", err.message)
+  };
+});
+
+app.patch("/userupdate", async (req, res) => {
+  let userId = req.body.userId;
+  const data = req.body;
+  console.log("Received userId:", userId);
+  if (!userId) {
+    return res.status(400).send("userId is required");
+  }
+  try {
+    const user = await User.findByIdAndUpdate({ _id: userId }, data);
+    if (!user) {
+      return res.status(200).send("User not found");
+    } else {
+      res.send("user updated successfully");
+    }
+  } catch (err) {
+    res.status(400).send("Something Error", err.message)
+  };
+});
 
 connectDB().then(() => {
   console.log("Connected to DB");
