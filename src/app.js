@@ -2,22 +2,38 @@ const express = require("express");
 const connectDB = require("./config/database");
 const app = express();
 const User = require("./models/user");
-
+app.use(express.json()); // its a middleware
 app.post("/signup", async (req, res) => {
-  const userObj = {
-    firstName: "Subhan",
-    lastName: "Basha",
-    emailId: "subhantest@gmail.com",
-    password: "sami"
-  }
+  const userObj = req.body;
+  // const userObj = {
+  //   firstName: "Ms",
+  //   lastName: "Dhoni",
+  //   emailId: "dhoni@gmail.com",
+  //   password: "dhoni07"
+  // }
   //Creating a new instance of the User model
   const user = new User(userObj);
   try {
     await user.save();
     res.send("User Created Succesfully");
   } catch (err) {
-    res.status(400).send("Something Error",err.message)
+    res.status(400).send("Something Error", err.message)
   }
+});
+
+//Feed API - get all the users from the database
+app.get("/user", async (req, res) => {
+  const userEmail = req.body.emailId;
+  try {
+    const user = await User.find({ emailId: userEmail });
+    if (user.length === 0) {
+      return res.status(200).send("User not found");
+    } else {
+      res.send(user);
+    }
+  } catch (err) {
+    res.status(400).send("Something Error", err.message)
+  };
 });
 
 
