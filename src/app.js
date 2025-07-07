@@ -18,7 +18,7 @@ app.post("/signup", async (req, res) => {
     await user.save();
     res.send("User Created Succesfully");
   } catch (err) {
-    res.status(400).send("Something Error", err.message)
+    res.status(400).send(err.message)
   }
 });
 
@@ -69,11 +69,24 @@ app.delete("/userdel/:userId", async (req, res) => {
 app.patch("/userupdate", async (req, res) => {
   let userId = req.body.userId;
   const data = req.body;
-  console.log("Received userId:", userId);
-  if (!userId) {
-    return res.status(400).send("userId is required");
-  }
   try {
+    const ALLOWED_UPDATES = [
+      "userId",
+      "photoUrl",
+      "about",
+      "gender",
+      "age",
+      "skills"
+    ]
+    const isUpdateAllowed = Object.keys(data).every((key) => {
+      return ALLOWED_UPDATES.includes(key);
+    });
+    if (!isUpdateAllowed) {
+      throw new Error("Invalid update");
+    }
+    if (data?.skills.length > 10) {
+      throw new Error("Skills cannot be more than 10");
+    }
     const user = await User.findByIdAndUpdate({ _id: userId }, data);
     if (!user) {
       return res.status(200).send("User not found");
@@ -81,7 +94,7 @@ app.patch("/userupdate", async (req, res) => {
       res.send("user updated successfully");
     }
   } catch (err) {
-    res.status(400).send("Something Error", err.message)
+    res.status(400).send(err.message)
   };
 });
 
