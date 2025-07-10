@@ -2,9 +2,9 @@
 const express = require("express");
 const requestRouter = express.Router();
 
-
+const User = require("../models/user");
 const { userAuth } = require("../middlewares/auth");
-const ConnectionRequestModel = require("../models/connectionRequest");
+const ConnectionRequest = require("../models/connectionRequest");
 
 requestRouter.post("/request/send/:status/:toUserId", userAuth, async (req, res) => {
     try {
@@ -17,8 +17,14 @@ requestRouter.post("/request/send/:status/:toUserId", userAuth, async (req, res)
             return res.status(400).json({ message: "Invalid Status" });
         }
 
+        const toUser = await User.findById(toUserId);
+
+        if (!toUser) {
+            return res.status(400).json({ message: "User not found" });
+        }
+
         //If there is an existing ConnectionRequest
-        const existingConnectionRequest = await ConnectionRequestModel.findOne({
+        const existingConnectionRequest = await ConnectionRequest.findOne({
             $or: [
                 { fromUserId, toUserId },
                 { fromUserId: toUserId, toUserId: fromUserId },
@@ -32,7 +38,7 @@ requestRouter.post("/request/send/:status/:toUserId", userAuth, async (req, res)
 
 
 
-        const connectionRequest = new ConnectionRequestModel({
+        const connectionRequest = new ConnectionRequest({
             fromUserId,
             toUserId,
             status
@@ -40,9 +46,10 @@ requestRouter.post("/request/send/:status/:toUserId", userAuth, async (req, res)
         //  below line is used to save connection in DB
         const data = await connectionRequest.save();
         res.json({
-            message: "Connection Request Sent Successfully",
-            data: data
-        })
+            message:
+                req.user.firstName + " is " + status + " in " + toUser.firstName,
+            data,
+        });
     } catch (err) {
         res.status(400).send("ERROR:" + err.message)
     }
