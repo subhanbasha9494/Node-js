@@ -30,7 +30,7 @@ authRouter.post("/login", async (req, res) => {
     if (isPasswordValid) {
       const token = await jwt.sign({ _id: user._id }, "mysecret", { expiresIn: "1h" });
       res.cookie("token", token);
-      res.send("Login Successfull");
+      res.send(user);
     } else {
       throw new Error("Invalid Credentails");
     }

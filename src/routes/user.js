@@ -36,7 +36,6 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
             ],
         }).populate("fromUserId", USER_SAFE_DATA)
             .populate("toUserId", USER_SAFE_DATA);
-        console.log(connectionRequest);
         const data = connectionRequests.map((row) => {
             if (row.fromUserId._id.toString() === loggedInUserId._id.toString()) {
                 return row.toUserId;
@@ -52,7 +51,7 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
 
 userRouter.get("/feed", userAuth, async (req, res) => {
     try {
-        const loggedInUserId = req.user;
+        const  Id = req.user;
 
         const page = parseInt(req.query.page) || 1;
         let limit = parseInt(req.query.limit) || 10;
