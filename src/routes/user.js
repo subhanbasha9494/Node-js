@@ -2,9 +2,10 @@ const express = require('express');
 const { use } = require('./request');
 const { userAuth } = require('../middlewares/auth');
 const ConnectionRequest = require('../models/connectionRequest');
+const User = require('../models/user');
 const userRouter = express.Router();
 
-const USER_SAFE_DATA = "firstName lastName photoUrl age gender about skills";
+const USER_SAFE_DATA = "firstName lastName about skills";
 
 // Get all the pending connection request for the loggedIn user
 
@@ -29,21 +30,28 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
 userRouter.get("/user/connections", userAuth, async (req, res) => {
     try {
         const loggedInUserId = req.user;
-        const connectionRequest = await ConnectionRequest.find({
+        const connectionRequests = await ConnectionRequest.find({
             $or: [
-                { toUserId: loggedInUserId._id, status: "accepted" },
-                { fromUserId: loggedInUserId._id, status: "accepted" },
+                { toUserId: loggedInUserId._id, status: "interested" },
+                { fromUserId: loggedInUserId._id, status: "interested" },
             ],
-        }).populate("fromUserId", USER_SAFE_DATA)
-            .populate("toUserId", USER_SAFE_DATA);
-        const data = connectionRequests.map((row) => {
-            if (row.fromUserId._id.toString() === loggedInUserId._id.toString()) {
+        });
+        
+        console.log("Connection requests found:", connectionRequests.length);
+        
+        // Collect user IDs to fetch
+        const userIds = connectionRequests.map(row => {
+            if (row.fromUserId.toString() === loggedInUserId._id.toString()) {
                 return row.toUserId;
             }
             return row.fromUserId;
         });
-
-        res.json({ data });
+        
+        // Fetch complete user details
+        const users = await User.find({ _id: { $in: userIds } })
+            .select(USER_SAFE_DATA);
+            
+        res.json({ data: users });
     } catch (err) {
         res.status(400).json({ message: err.message })
     }
@@ -51,7 +59,7 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
 
 userRouter.get("/feed", userAuth, async (req, res) => {
     try {
-        const  Id = req.user;
+        const  loggedInUserId = req.user;
 
         const page = parseInt(req.query.page) || 1;
         let limit = parseInt(req.query.limit) || 10;
@@ -68,18 +76,14 @@ userRouter.get("/feed", userAuth, async (req, res) => {
             hideUsersFromFeed.add(req.toUserId.toString());
         });
 
-        const users = await User.find({
-            $and: [
-                { _id: { $nin: Array.from(hideUsersFromFeed) } },
-                { _id: { $ne: loggedInUserId._id } },
-            ],
-        })
+        const users = await User.find({ _id: { $ne: loggedInUserId._id } })
             .select(USER_SAFE_DATA)
             .skip(skip)
             .limit(limit);
 
         res.json({ data: users });
     } catch (err) {
+        
         res.status(400).json({ message: err.message });
     }
 });
